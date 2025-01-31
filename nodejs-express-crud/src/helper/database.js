@@ -33,7 +33,7 @@ const buildInsertQueryPS = (tableName, data) => {
           s++;
         });
 
-        query += `) returning username, created_at`;
+        query += `) returning *`;
       } else {
         query += ",(";
 
@@ -160,6 +160,56 @@ const buildUpdateQueryPS2 = (
   }
 };
 
+const buildUpdateQueryPS3 = (
+  tableName,
+  data,
+  condition,
+  returnField = "*"
+) => {
+  if (
+    (tableName !== "" && typeof data === "object",
+    typeof condition === "object")
+  ) {
+    let query = `UPDATE ${tableName} SET `;
+    let x = 0;
+    let s = 1;
+    let buildData = [];
+
+    Object.keys(data).forEach((key) => {
+      if (x == 0) {
+        query += `${key}=$${s}`;
+        buildData.push(data[key]);
+      } else {
+        query += `, ${key}=$${s}`;
+        buildData.push(data[key]);
+      }
+      x++;
+      s++;
+    });
+
+    query += " WHERE ";
+
+    let z = 0;
+    Object.keys(condition).forEach((key) => {
+      if (z == 0) {
+        query += `${key}=$${s}`;
+        buildData.push(condition[key]);
+      } else {
+        query += ` AND ${key}=$${s}`;
+        buildData.push(condition[key]);
+      }
+      z++;
+      s++;
+    });
+
+    query += ` RETURNING ${returnField} `;
+
+    return { query, data: buildData };
+  } else {
+    return { query: null, data: [] };
+  }
+};
+
 const buildSearchQuery = (arr) => {
   if (arr.length < 1) {
     return "";
@@ -178,6 +228,7 @@ const buildSearchQuery = (arr) => {
 module.exports = {
   buildInsertQueryPS,
   buildUpdateQueryPS,
+  buildUpdateQueryPS3,
   buildUpdateQueryPS2,
   buildSearchQuery
 };

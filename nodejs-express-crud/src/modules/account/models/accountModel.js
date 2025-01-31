@@ -1,12 +1,12 @@
 const Postgres = require("../../../libraries")("Postgres");
 const postgres = Postgres.getInstance().conn;
-const { buildUpdateQueryPS2, buildInsertQueryPS, buildSearchQuery  } = require("../../../helper")("database");
+const { buildUpdateQueryPS3, buildUpdateQueryPS2, buildInsertQueryPS, buildSearchQuery  } = require("../../../helper")("database");
 
 module.exports = {
   checkUser: async (username) => {
     try {
       let sql = `
-           select * from public.admin_user where username = $1
+           select * from public.users where username = $1
        `;
       let result = await postgres.any(sql, [username]);
       return result;
@@ -15,110 +15,15 @@ module.exports = {
       return false;
     }
   },
-  getAllUser: async (data, limit, offset) => {
-    try {
-      const where = buildSearchQuery(data)
-      const sql = `select username, last_login, login_status from public.users ${where} offset ${offset} limit ${limit}`
-      // console.log(sql)
-
-      let result = await postgres.any(sql);
-      return result;
-    } catch (e) {
-      console.log('search',e)
-      return false;
-    }
-  },
-  countAllUSer: async () => {
+  checkUserLogin: async (username,password) => {
     try {
       let sql = `
-           select count(*) from public.users where status_code = 'ACTIVE'
+           select * from public.users where lower(username)=$1 AND password=$2
        `;
-      let result = await postgres.one(sql);
+      let result = await postgres.any(sql, [username,password]);
       return result;
     } catch (e) {
       console.log(e)
-      return false;
-    }
-  },
-  upldateLoginStatus: async (data) =>{
-    try {
-      await postgres.tx(async (trx) => {
-        let buildUpdate = buildUpdateQueryPS2(
-          "users",
-          data.data,
-          data.condition,
-          'username'
-        );
-        await trx.one(buildUpdate.query, buildUpdate.data);
-      });
-
-      return true;
-    } catch (err) {
-      // console.log("update password", err);
-      return false;
-    }
-  },
-  //no return data
-  // registerUser: async (data) =>{
-  //   try{
-  //       await postgres.tx(async(trx)=>{
-  //       const builQuery = buildInsertQueryPS("users", [data]);
-  //       console.log(builQuery)
-  //       trx.one(builQuery.query, builQuery.data);
-  //     })
-  //   }catch(err){
-  //     console.log("register user error", err);
-  //     return false
-  //   }
-  // },
-  registerUser: async (data) =>{
-    try{
-     return await postgres.tx(async(trx)=>{
-        const builQuery = buildInsertQueryPS("admin_user", [data]);
-        // console.log(builQuery)
-         return trx.one(builQuery.query, builQuery.data);
-      })
-    }catch(err){
-      console.log("register user error", err);
-      return false
-    }
-  },
-  updatePwd: async (data) => {
-    try {
-      await postgres.tx(async (trx) => {
-        let buildUpdate = buildUpdateQueryPS2(
-          "users",
-          data.account,
-          data.accountCondition
-        );
-        
-        await trx.any(buildUpdate.query, buildUpdate.data);
-      });
-
-      return true;
-    } catch (err) {
-      console.log("update password", err);
-      return false;
-    }
-  },
-  updateImg: async (data) => {
-    console.log(data)
-    try {
-      await postgres.tx(async (trx) => {
-        let buildUpdate = buildUpdateQueryPS2(
-          "users",
-          data.updateImg,
-          data.accountCondition
-        );
-
-        console.log(buildUpdate)
-        
-        await trx.any(buildUpdate.query, buildUpdate.data);
-      });
-
-      return true;
-    } catch (err) {
-      console.log("update image", err);
       return false;
     }
   },
@@ -198,4 +103,142 @@ module.exports = {
       return false;
     }
   },
+  addCourse: async (data) =>{
+    try{
+     return await postgres.tx(async(trx)=>{
+        const builQuery = buildInsertQueryPS("courses", [data]);
+        // console.log(builQuery)
+         return trx.one(builQuery.query, builQuery.data);
+      })
+    }catch(err){
+      console.log("add course error", err);
+      return false
+    }
+  },
+  updateCourse: async (data) => {
+    try {
+      await postgres.tx(async (trx) => {
+        let buildUpdate = buildUpdateQueryPS2(
+          "courses",
+          data.data,
+          data.condition
+        );
+        
+        await trx.any(buildUpdate.query, buildUpdate.data);
+      });
+
+      return true;
+    } catch (err) {
+      console.log("update password", err);
+      return false;
+    }
+  },
+  deleteCourse: async (id) => {
+    try {
+      let sql = `
+           delete from public.courses where id = $1
+       `;
+      let result = await postgres.any(sql, [id]);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+  currentCourse: async (id) => {
+    try {
+      let sql = `
+           select*from public.courses where id = $1
+       `;
+      let result = await postgres.any(sql, [id]);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+  getAllCourse: async () => {
+    try {
+      let sql = `
+           select * from public.courses
+       `;
+      let result = await postgres.any(sql);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+  addUserCourse: async (data) =>{
+    try{
+     return await postgres.tx(async(trx)=>{
+        const builQuery = buildInsertQueryPS("usercourse", [data]);
+        // console.log(builQuery)
+         return trx.one(builQuery.query, builQuery.data);
+      })
+    }catch(err){
+      console.log("add course error", err);
+      return false
+    }
+  },
+  // updateUserCourse: async (data) => {
+  //   try {
+  //     await postgres.tx(async (trx) => {
+  //       let buildUpdate = buildUpdateQueryPS3(
+  //         "usercourse",
+  //         data.data,
+  //         data.condition
+  //       );
+
+  //       console.log(buildUpdate)
+        
+  //       await trx.any(buildUpdate.query, buildUpdate.data);
+  //     });
+
+  //     return true;
+  //   } catch (err) {
+  //     console.log("update password", err);
+  //     return false;
+  //   }
+  // },
+  deleteUserCourse: async (data) => {
+    try {
+      let sql = `
+           delete from public.usercourse where id_user = $1 and id_course = $2
+       `;
+      let result = await postgres.any(sql, [data.id_user,data.id_course]);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+  getAllUserCourse: async () => {
+    try {
+      let sql = `
+           select u.id, u.username, c.course, c.mentor, c.title
+           from usercourse uc
+           join users u on uc.id_user = u.id 
+           join courses c on uc.id_course = c.id ;
+       `;
+      let result = await postgres.any(sql);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+  currentUserCourse: async (id) => {
+    try {
+      let sql = `
+           select*from public.usercourse where id = $1
+       `;
+      let result = await postgres.any(sql, [id]);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+
 };
