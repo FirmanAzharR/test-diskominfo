@@ -3,12 +3,24 @@ const postgres = Postgres.getInstance().conn;
 const { buildUpdateQueryPS3, buildUpdateQueryPS2, buildInsertQueryPS, buildSearchQuery  } = require("../../../helper")("database");
 
 module.exports = {
-  checkUser: async (username) => {
+  checkUser: async (id) => {
     try {
       let sql = `
-           select * from public.users where username = $1
+           select * from public.users where id = $1
        `;
-      let result = await postgres.any(sql, [username]);
+      let result = await postgres.any(sql, [id]);
+      return result;
+    } catch (e) {
+      console.log(e)
+      return false;
+    }
+  },
+  AllUserData: async (id) => {
+    try {
+      let sql = `
+           select*from public.users
+       `;
+      let result = await postgres.any(sql, [id]);
       return result;
     } catch (e) {
       console.log(e)

@@ -15,6 +15,7 @@ const client = redis.createClient()
 const uploadImg = require('../../../helper/multer')
 
 const logger = require("../../../helper/logger");
+const Joi = require("joi");
 
 let message = ``;
 let status = 500;
@@ -47,15 +48,16 @@ router.post("/user/login", async (req, res, next) => {
       status = 422;
     }
     console.log(err)
-    return next(new ApplicationError(message, status));
+    return next(new ApplicationError(message, status, status));
   }
 })
 
 //user
 
-router.get("/user/current", verifyJwt, getCurrentUser, async (req, res, next) => {
+router.get("/user/current", async (req, res, next) => {
   try {
-    const result = await accountModel.checkUser(req.decodeToken.username);
+    // console.log('test')
+    const result = await accountModel.checkUser(req.query.id);
     return helper.response(res,200,'Get Data User Success',result);
   }catch(err){
     console.log(err)
@@ -63,10 +65,11 @@ router.get("/user/current", verifyJwt, getCurrentUser, async (req, res, next) =>
   }
 })
 
-router.post("/user/all", verifyJwt ,async (req, res, next) => {
+router.post("/user/all-user-course", verifyJwt,async (req, res, next) => {
+  // console.log(req.decodeToken)
   try {    
+    const {jenis_mentor} = req.body;
     if(req.decodeToken.user_code==='ADMIN_USER'){
-      const {jenis_mentor} = req.body;
 
       await schema.getAllUserSchema.validateAsync(req.body);
   
@@ -83,9 +86,12 @@ router.post("/user/all", verifyJwt ,async (req, res, next) => {
 
     if(req.decodeToken.user_code==='NORMAL_USER'){  
       let search = [];
-      search.push(`u.username = '${req.decodeToken.username}'`)
-
-  
+      search.push(`u.id = '${req.decodeToken.id}'`)
+      if(jenis_mentor.toLowerCase()=='sarjana'){
+        search.push(`c.title ilike 'S.%'`)
+      }else{
+        search.push(`c.title not ilike 'S.%'`)
+      }  
       const result = await accountModel.getDataUserCourse(search);
       return helper.response(res,200,'Get Data User Success',result);
     }
@@ -101,9 +107,42 @@ router.post("/user/all", verifyJwt ,async (req, res, next) => {
   }
 })
 
+router.get("/user/all", async (req, res, next) => {
+  try {    
+    const result = await accountModel.AllUserData();
+    return helper.response(res,200,'Get Data User Success',result);
+
+  }catch(err){
+    message = err;
+    if (err.isJoi == true) {
+      message = err.details[0].message;
+      status = 422;
+    }
+    console.log(err)
+    return next(new ApplicationError(message, status));
+  }
+})
+
 router.get("/user/mentor-fee", async (req, res, next) => {
   try {
-    const result = await accountModel.getMentorFee();
+    let result = await accountModel.getMentorFee();
+    let chart = {
+      labels:[],
+      jumlah_peserta: [],
+      total_fee: []
+    }
+    let reduceData = await result.reduce((_a,value)=>{
+      chart.labels.push(value.mentor)
+      chart.jumlah_peserta.push(value.jumlah_pesesrta)
+      chart.total_fee.push(value.total_fee)
+      return chart
+    }, Promise.resolve(chart))
+
+    result = {
+      data: result,
+      chart: reduceData
+    }
+
     return helper.response(res,200,'Get Data Mentor Success',result);
   }catch(err){
     console.log(err)
@@ -181,11 +220,10 @@ router.patch("/user/update-user", async (req, res, next) => {
 
 router.delete("/user/delete-user", async (req, res, next) => {
   try {
-    let bodyData = req.body;
 
-    await schema.userDeleteSchema.validateAsync(bodyData);
+    await Joi.number().validateAsync(req.query.id);
 
-    const result = await accountModel.deleteUser(bodyData.id);
+    const result = await accountModel.deleteUser(req.query.id);
     if(!result){
       return next(new DatabaseError("query error", 400));
     }
@@ -262,11 +300,10 @@ router.patch("/course/update-course", async (req, res, next) => {
 
 router.delete("/course/delete-course", async (req, res, next) => {
   try {
-    let bodyData = req.body;
 
-    await schema.deleteCourseSchema.validateAsync(bodyData);
+    await Joi.number().validateAsync(req.query.id);
 
-    const result = await accountModel.deleteCourse(bodyData.id);
+    const result = await accountModel.deleteCourse(req.query.id);
     if(!result){
       return next(new DatabaseError("query error", 400));
     }
@@ -283,7 +320,7 @@ router.delete("/course/delete-course", async (req, res, next) => {
   }
 })
 
-router.get("/course/all", verifyJwt, getCurrentUser, async (req, res, next) => {
+router.get("/course/all", async (req, res, next) => {
   try {
     const result = await accountModel.getAllCourse();
     return helper.response(res,200,'Get Data Course Success',result);
@@ -293,6 +330,16 @@ router.get("/course/all", verifyJwt, getCurrentUser, async (req, res, next) => {
   }
 })
 
+router.get("/course/current", async (req, res, next) => {
+  try {
+    // console.log('test')
+    const result = await accountModel.currentCourse(req.query.id);
+    return helper.response(res,200,'Get Data Success',result);
+  }catch(err){
+    console.log(err)
+    return next(new ApplicationError(message, status));
+  }
+})
 
 //user course
 
@@ -384,7 +431,6 @@ router.get("/user-course/all", verifyJwt, getCurrentUser, async (req, res, next)
     return next(new ApplicationError(message, status));
   }
 })
-
 
 
 module.exports = router;
