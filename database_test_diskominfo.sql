@@ -1,3 +1,7 @@
+USE DATABASE belajar_typescript;
+CREATE SEQUENCE user_sequence;
+CREATE SEQUENCE courses_sequence;
+
 CREATE TABLE public.users (
 	id int4 DEFAULT nextval('user_sequence'::regclass) NOT NULL,
 	username varchar(50) NOT NULL,
